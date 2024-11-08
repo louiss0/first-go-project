@@ -41,7 +41,7 @@ func Repeat(word string, times int) string {
 
 }
 
-func Sum(numbers [5]int) int {
+func Sum(numbers []int) int {
 
 	sum := 0
 
@@ -53,6 +53,14 @@ func Sum(numbers [5]int) int {
 
 	return sum
 
+}
+
+func SumAll(numbersToSum ...[]int) []int {
+	return lo.Map(numbersToSum, func(numbers []int, _ int) int {
+
+		return Sum(numbers)
+
+	})
 }
 
 func main() {

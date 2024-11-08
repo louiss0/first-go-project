@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"slices"
+	"testing"
+)
 
 func TestHello(testUtils *testing.T) {
 
@@ -35,6 +38,12 @@ func TestHello(testUtils *testing.T) {
 	testUtils.Run("in Spanish", func(testUtils *testing.T) {
 		got := Hello("Elodie", "Spanish")
 		want := "Hola, Elodie"
+		assertCorrectMessage(testUtils, got, want)
+	})
+
+	testUtils.Run("in French", func(testUtils *testing.T) {
+		got := Hello("Étienne", "Spanish")
+		want := "Hola, Étienne"
 		assertCorrectMessage(testUtils, got, want)
 	})
 
@@ -76,15 +85,36 @@ func BenchmarkRepeat(b *testing.B) {
 
 func TestSum(testUtils *testing.T) {
 
-	numbers := [5]int{1, 2, 3, 4, 5}
+	testUtils.Run("collection of 5 numbers", func(t *testing.T) {
+		numbers := []int{1, 2, 3, 4, 5}
 
-	got := Sum(numbers)
+		got := Sum(numbers)
+		want := 15
 
-	want := 15
+		if got != want {
+			t.Errorf("got %d want %d given, %v", got, want, numbers)
+		}
+	})
 
-	if got != want {
+	testUtils.Run("collection of any size", func(t *testing.T) {
+		numbers := []int{1, 2, 3}
 
-		testUtils.Errorf("got %d want %d given %v", got, want, numbers)
+		got := Sum(numbers)
+		want := 6
+
+		if got != want {
+			t.Errorf("got %d want %d given, %v", got, want, numbers)
+		}
+	})
+
+}
+
+func TestSumAll(t *testing.T) {
+
+	got := SumAll([]int{1, 2}, []int{0, 9})
+	want := []int{3, 9}
+
+	if !slices.Equal(got, want) {
+		t.Errorf("got %v want %v", got, want)
 	}
-
 }
