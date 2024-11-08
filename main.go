@@ -41,6 +41,20 @@ func Repeat(word string, times int) string {
 
 }
 
+func Sum(numbers [5]int) int {
+
+	sum := 0
+
+	for _, number := range numbers {
+
+		sum += number
+
+	}
+
+	return sum
+
+}
+
 func main() {
 
 	fmt.Println(Hello("World", ""))
