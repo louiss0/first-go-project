@@ -63,6 +63,20 @@ func SumAll(numbersToSum ...[]int) []int {
 	})
 }
 
+func SumAllTails(numbersToSum ...[]int) []int {
+	return lo.Map(numbersToSum, func(numbers []int, _ int) int {
+
+		return lo.IfF(
+			len(numbers) == 0,
+			func() int { return 0 },
+		).
+			ElseF(
+				func() int { return Sum(numbers[1:]) },
+			)
+	})
+
+}
+
 func main() {
 
 	fmt.Println(Hello("World", ""))
