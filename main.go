@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/samber/lo"
 )
@@ -25,6 +26,19 @@ func Hello(word string, language string) string {
 func Add(x, y int) int {
 
 	return x + y
+}
+
+func Repeat(word string, times int) string {
+
+	return strings.Join(
+		lo.RepeatBy(times,
+			func(index int) string {
+				return word
+			},
+		),
+		"",
+	)
+
 }
 
 func main() {
