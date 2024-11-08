@@ -4,9 +4,15 @@ import (
 	"fmt"
 )
 
+const englishHello = "Hello"
+
 func Hello(word string) string {
 
-	return fmt.Sprintf("Hello %s", word)
+	if word == "" {
+		word = "World"
+	}
+
+	return fmt.Sprintf("%s, %s", englishHello, word)
 }
 
 func main() {
