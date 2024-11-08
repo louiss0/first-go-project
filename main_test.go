@@ -3,6 +3,8 @@ package main
 import (
 	"slices"
 	"testing"
+
+	"github.com/samber/lo"
 )
 
 func TestHello(testUtils *testing.T) {
@@ -155,26 +157,45 @@ func TestPerimeter(t *testing.T) {
 	}
 }
 
-func TestArea(t *testing.T) {
+type Shape interface {
+	Area() float64
+}
 
-	t.Run("rectangles", func(t *testing.T) {
-		rectangle := Rectangle{12, 6}
-		got := rectangle.Area()
-		want := 72.0
+func TestArea(testingUtils *testing.T) {
 
-		if got != want {
-			t.Errorf("got %g want %g", got, want)
-		}
-	})
+	areaTests := []struct {
+		name  string
+		shape Shape
+		want  float64
+	}{
+		{"Rectangle", Rectangle{12, 6}, 72.0},
+		{"Circle", Circle{10}, 314.1592653589793},
+		{"Triangle", Triangle{12, 6}, 36.0},
+	}
 
-	t.Run("circles", func(t *testing.T) {
-		circle := Circle{10}
-		got := circle.Area()
-		want := 314.1592653589793
+	lo.ForEach(
+		areaTests,
+		func(areaTest struct {
+			name  string
+			shape Shape
+			want  float64
+		}, _ int) {
 
-		if got != want {
-			t.Errorf("got %g want %g", got, want)
-		}
-	})
+			testingUtils.Run(areaTest.name, func(innerTestUtils *testing.T) {
+
+				got := areaTest.shape.Area()
+
+				if got != areaTest.want {
+					testingUtils.Errorf(
+						"%#v got %g want %g",
+						areaTest.shape,
+						got,
+						areaTest.want,
+					)
+				}
+
+			})
+
+		})
 
 }
