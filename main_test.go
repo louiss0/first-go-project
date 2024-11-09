@@ -199,3 +199,154 @@ func TestArea(testingUtils *testing.T) {
 		})
 
 }
+
+func TestWallet(testUtils *testing.T) {
+
+	assertBalance := func(t testing.TB, wallet Wallet, want Bitcoin) {
+		t.Helper()
+		got := wallet.Balance()
+
+		if got != want {
+			t.Errorf("got %s want %s", got, want)
+		}
+	}
+
+	testUtils.Run("deposit", func(innerTestutils *testing.T) {
+		wallet := Wallet{}
+		wallet.Deposit(Bitcoin(10))
+		assertBalance(innerTestutils, wallet, Bitcoin(10))
+	})
+
+	testUtils.Run("withdraw with funds", func(innerTestUtils *testing.T) {
+		wallet := Wallet{balance: Bitcoin(20)}
+		err := wallet.Withdraw(Bitcoin(10))
+
+		assertNoError(innerTestUtils, err)
+		assertBalance(innerTestUtils, wallet, Bitcoin(10))
+	})
+
+	testUtils.Run("withdraw insufficient funds", func(t *testing.T) {
+		startingBalance := Bitcoin(20)
+		wallet := Wallet{startingBalance}
+		err := wallet.Withdraw(Bitcoin(100))
+
+		assertError(t, err, InsufficientFundsError)
+		assertBalance(t, wallet, startingBalance)
+
+	})
+
+}
+
+func TestSearch(t *testing.T) {
+	dictionary := Dictionary{"test": "this is just a test"}
+
+	t.Run("known word", func(t *testing.T) {
+		got, _ := dictionary.Search("test")
+		want := "this is just a test"
+
+		assertStrings(t, got, want)
+	})
+
+	t.Run("unknown word", func(t *testing.T) {
+		_, err := dictionary.Search("unknown")
+		want := "could not find the word you were looking for"
+
+		assertError(t, err, ErrNotFound)
+
+		assertStrings(t, err.Error(), want)
+	})
+}
+
+func TestAddWord(t *testing.T) {
+
+	t.Run("new word", func(t *testing.T) {
+		dictionary := Dictionary{}
+		word := "test"
+		definition := "this is just a test"
+
+		err := dictionary.AddWord(word, definition)
+
+		assertNoError(t, err)
+		assertDefinition(t, dictionary, word, definition)
+	})
+
+	t.Run("existing word", func(t *testing.T) {
+		word := "test"
+		definition := "this is just a test"
+		dictionary := Dictionary{word: definition}
+		err := dictionary.AddWord(word, "new test")
+
+		assertError(t, err, ErrWordExists)
+		assertDefinition(t, dictionary, word, definition)
+	})
+}
+
+func TestUpdate(t *testing.T) {
+	t.Run("existing word", func(t *testing.T) {
+		word := "test"
+		definition := "this is just a test"
+		dictionary := Dictionary{word: definition}
+		newDefinition := "new definition"
+
+		err := dictionary.Update(word, newDefinition)
+
+		assertNoError(t, err)
+		assertDefinition(t, dictionary, word, newDefinition)
+	})
+
+	t.Run("new word", func(t *testing.T) {
+		word := "test"
+		definition := "this is just a test"
+		dictionary := Dictionary{}
+
+		err := dictionary.Update(word, definition)
+
+		assertError(t, err, ErrWordDoesNotExist)
+	})
+}
+
+func TestDelete(t *testing.T) {
+	word := "test"
+	dictionary := Dictionary{word: "test definition"}
+
+	dictionary.Delete(word)
+
+	_, err := dictionary.Search(word)
+	assertError(t, err, ErrNotFound)
+}
+
+func assertDefinition(t testing.TB, dictionary Dictionary, word, definition string) {
+	t.Helper()
+
+	got, err := dictionary.Search(word)
+	if err != nil {
+		t.Fatal("should find added word:", err)
+	}
+	assertStrings(t, got, definition)
+}
+func assertNoError(t testing.TB, got error) {
+	t.Helper()
+	if got != nil {
+		t.Fatal("got an error but didn't want one")
+	}
+}
+
+func assertError(t testing.TB, got error, want error) {
+	t.Helper()
+
+	if got == nil {
+		t.Fatal("didn't get an error but wanted one")
+	}
+
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func assertStrings(t testing.TB, got, want string) {
+	t.Helper()
+
+	if got != want {
+		t.Errorf("got %q want %q", got, want)
+	}
+}
