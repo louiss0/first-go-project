@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"slices"
 	"testing"
 
@@ -314,6 +315,20 @@ func TestDelete(t *testing.T) {
 	_, err := dictionary.Search(word)
 	assertError(t, err, ErrNotFound)
 }
+
+func TestGreet(t *testing.T) {
+	buffer := bytes.Buffer{}
+	Greet(&buffer, "Chris")
+
+	got := buffer.String()
+	want := "Hello, Chris"
+
+	if got != want {
+		t.Errorf("got %q want %q", got, want)
+	}
+}
+
+// # Assertions
 
 func assertDefinition(t testing.TB, dictionary Dictionary, word, definition string) {
 	t.Helper()
