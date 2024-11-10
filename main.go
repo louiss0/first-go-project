@@ -4,10 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"math"
 	"net/http"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/samber/lo"
 )
@@ -222,6 +223,44 @@ func MyGreeterHandler(w http.ResponseWriter, r *http.Request) {
 	Greet(w, "world")
 }
 
+func Countdown(out io.Writer, sleeper Sleeper) {
+
+	startCount := 1
+	maxCount := 3
+	finalWord := "Go!"
+
+	lo.ForEach(
+		lo.Reverse(lo.RangeFrom(startCount, maxCount)),
+		func(item int, index int) {
+			fmt.Fprintln(out, item)
+			sleeper.Sleep()
+		})
+
+	fmt.Fprint(out, finalWord)
+}
+
+type Sleeper interface {
+	Sleep()
+}
+
+type DefaultSleeper struct{}
+
+func (d *DefaultSleeper) Sleep() {
+	time.Sleep(1 * time.Second)
+}
+
+type ConfigurableSleeper struct {
+	duration time.Duration
+	sleep    func(time.Duration)
+}
+
+func (c *ConfigurableSleeper) Sleep() {
+
+	c.sleep(c.duration)
+
+}
+
 func main() {
-	log.Fatal(http.ListenAndServe(":5001", http.HandlerFunc(MyGreeterHandler)))
+	sleeper := &ConfigurableSleeper{1 * time.Second, time.Sleep}
+	Countdown(os.Stdout, sleeper)
 }
