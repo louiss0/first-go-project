@@ -260,6 +260,34 @@ func (c *ConfigurableSleeper) Sleep() {
 
 }
 
+type WebsiteChecker func(string) bool
+
+type result struct {
+	string
+	bool
+}
+
+func CheckWebsites(wc WebsiteChecker, urls []string) map[string]bool {
+	results := make(map[string]bool)
+
+	resultsChannel := make(chan result)
+
+	for _, url := range urls {
+
+		go func(value string) {
+
+			resultsChannel <- result{value, wc(value)}
+		}(url)
+	}
+
+	for i := 0; i < len(urls); i++ {
+		r := <-resultsChannel
+		results[r.string] = r.bool
+	}
+
+	return results
+}
+
 func main() {
 	sleeper := &ConfigurableSleeper{1 * time.Second, time.Sleep}
 	Countdown(os.Stdout, sleeper)
