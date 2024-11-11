@@ -7,6 +7,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 
@@ -313,6 +314,77 @@ func ConfigurableRacer(a, b string, timeout time.Duration) (winner string, error
 	case <-time.After(timeout):
 		return "", fmt.Errorf("timed out waiting for %s and %s", a, b)
 	}
+}
+
+func walk(x interface{}, fn func(input string)) {
+	val := reflect.ValueOf(x)
+
+	if val.Kind() == reflect.Pointer {
+		val = val.Elem()
+	}
+
+	walkValue := func(value reflect.Value) {
+
+		walk(value.Interface(), fn)
+
+	}
+
+	switch val.Kind() {
+
+	case reflect.String:
+		fn(val.String())
+
+	case reflect.Struct:
+		lo.ForEach(
+			lo.Range(val.NumField()),
+			func(item int, _ int) {
+
+				walkValue(val.Field(item))
+			},
+		)
+
+	case reflect.Slice, reflect.Array:
+		lo.ForEach(
+			lo.Range(val.Len()),
+			func(item int, index int) {
+
+				walkValue(val.Index(item))
+
+			},
+		)
+
+	case reflect.Map:
+		lo.ForEach(
+			val.MapKeys(),
+			func(key reflect.Value, index int) {
+
+				walkValue(val.MapIndex(key))
+
+			},
+		)
+
+	case reflect.Chan:
+
+		for {
+			if v, ok := val.Recv(); ok {
+
+				walkValue(v)
+			} else {
+				break
+			}
+		}
+
+	case reflect.Func:
+		lo.ForEach(
+			val.Call(nil),
+			func(item reflect.Value, index int) {
+
+				walkValue(item)
+			},
+		)
+
+	}
+
 }
 
 func main() {

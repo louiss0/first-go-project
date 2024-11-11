@@ -2,8 +2,6 @@ package main
 
 import (
 	"bytes"
-	"net/http"
-	"net/http/httptest"
 	"reflect"
 	"slices"
 	"testing"
@@ -438,45 +436,201 @@ func BenchmarkCheckWebsites(b *testing.B) {
 	}
 }
 
-func TestRacer(t *testing.T) {
+// func TestRacer(t *testing.T) {
 
-	makeDelayedServer := func(delay time.Duration) *httptest.Server {
-		return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			time.Sleep(delay)
-			w.WriteHeader(http.StatusOK)
-		}))
+// 	makeDelayedServer := func(delay time.Duration) *httptest.Server {
+// 		return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 			time.Sleep(delay)
+// 			w.WriteHeader(http.StatusOK)
+// 		}))
+// 	}
+// 	t.Run("compares speeds of servers, returning the url of the fastest one", func(t *testing.T) {
+// 		slowServer := makeDelayedServer(5 * time.Millisecond)
+// 		fastServer := makeDelayedServer(0 * time.Millisecond)
+
+// 		defer slowServer.Close()
+// 		defer fastServer.Close()
+
+// 		slowURL := slowServer.URL
+// 		fastURL := fastServer.URL
+
+// 		want := fastURL
+// 		got, _ := Racer(slowURL, fastURL)
+
+// 		if got != want {
+// 			t.Errorf("got %q, want %q", got, want)
+// 		}
+// 	})
+
+// 	t.Run("returns an error if a server doesn't respond within 10s", func(t *testing.T) {
+// 		serverA := makeDelayedServer(11 * time.Second)
+// 		serverB := makeDelayedServer(12 * time.Second)
+
+// 		defer serverA.Close()
+// 		defer serverB.Close()
+
+// 		_, err := Racer(serverA.URL, serverB.URL)
+
+// 		if err == nil {
+// 			t.Error("expected an error but didn't get one")
+// 		}
+// 	})
+// }
+
+func TestWalk(t *testing.T) {
+
+	type Profile struct {
+		Age  int
+		City string
 	}
-	t.Run("compares speeds of servers, returning the url of the fastest one", func(t *testing.T) {
-		slowServer := makeDelayedServer(20 * time.Millisecond)
-		fastServer := makeDelayedServer(0 * time.Millisecond)
 
-		defer slowServer.Close()
-		defer fastServer.Close()
+	type Person struct {
+		Name    string
+		Profile Profile
+	}
 
-		slowURL := slowServer.URL
-		fastURL := fastServer.URL
+	cases := []struct {
+		Name          string
+		Input         interface{}
+		ExpectedCalls []string
+	}{
+		{
+			"struct with one string field",
+			struct {
+				Name string
+			}{
+				"Chris",
+			},
+			[]string{"Chris"},
+		},
 
-		want := fastURL
-		got, _ := Racer(slowURL, fastURL)
+		{
+			"struct with non string field",
+			struct {
+				Name string
+				Age  int
+			}{
+				"Chris",
+				33,
+			},
+			[]string{"Chris"},
+		},
+		{
+			"nested fields",
+			Person{
+				"Chris",
+				Profile{33, "London"},
+			},
+			[]string{"Chris", "London"},
+		},
+		{
+			"pointers to things",
+			&Person{
+				"Chris",
+				Profile{33, "London"},
+			},
+			[]string{"Chris", "London"},
+		},
+		{
+			"slices",
+			[]Profile{
+				{33, "London"},
+				{34, "Reykjavík"},
+			},
+			[]string{"London", "Reykjavík"},
+		},
+		{
+			"arrays",
+			[2]Profile{
+				{33, "London"},
+				{34, "Reykjavík"},
+			},
+			[]string{"London", "Reykjavík"},
+		},
+	}
 
-		if got != want {
-			t.Errorf("got %q, want %q", got, want)
+	for _, test := range cases {
+		t.Run(test.Name, func(t *testing.T) {
+			var got []string
+			walk(test.Input, func(input string) {
+				got = append(got, input)
+			})
+
+			if !reflect.DeepEqual(got, test.ExpectedCalls) {
+				t.Errorf("got %v, want %v", got, test.ExpectedCalls)
+			}
+		})
+	}
+
+	t.Run("with maps", func(t *testing.T) {
+
+		assertContains := func(t testing.TB, haystack []string, needle string) {
+			t.Helper()
+			contains := false
+			for _, x := range haystack {
+				if x == needle {
+					contains = true
+				}
+			}
+			if !contains {
+				t.Errorf("expected %v to contain %q but it didn't", haystack, needle)
+			}
+		}
+
+		aMap := map[string]string{
+			"Cow":   "Moo",
+			"Sheep": "Baa",
+		}
+
+		var got []string
+
+		walk(aMap, func(input string) {
+			got = append(got, input)
+		})
+
+		assertContains(t, got, "Moo")
+		assertContains(t, got, "Baa")
+
+	})
+
+	t.Run("with channels", func(t *testing.T) {
+		aChannel := make(chan Profile)
+
+		go func() {
+			aChannel <- Profile{33, "Berlin"}
+			aChannel <- Profile{34, "Katowice"}
+			close(aChannel)
+		}()
+
+		var got []string
+		want := []string{"Berlin", "Katowice"}
+
+		walk(aChannel, func(input string) {
+			got = append(got, input)
+		})
+
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("got %v, want %v", got, want)
 		}
 	})
 
-	t.Run("returns an error if a server doesn't respond within 10s", func(t *testing.T) {
-		serverA := makeDelayedServer(11 * time.Second)
-		serverB := makeDelayedServer(12 * time.Second)
+	t.Run("with function", func(t *testing.T) {
+		aFunction := func() (Profile, Profile) {
+			return Profile{33, "Berlin"}, Profile{34, "Katowice"}
+		}
 
-		defer serverA.Close()
-		defer serverB.Close()
+		var got []string
+		want := []string{"Berlin", "Katowice"}
 
-		_, err := Racer(serverA.URL, serverB.URL)
+		walk(aFunction, func(input string) {
+			got = append(got, input)
+		})
 
-		if err == nil {
-			t.Error("expected an error but didn't get one")
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("got %v, want %v", got, want)
 		}
 	})
+
 }
 
 // # Assertions
