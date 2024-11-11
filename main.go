@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"net/http"
 	"os"
@@ -401,6 +403,24 @@ func (c *Counter) Inc() {
 
 func (c *Counter) Value() int {
 	return c.value
+}
+
+func Server(store Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		data, err := store.Fetch(r.Context())
+
+		if err != nil {
+			log.Print(err)
+			return
+		}
+
+		fmt.Fprint(w, data)
+	}
+
+}
+
+type Store interface {
+	Fetch(ctx context.Context) (string, error)
 }
 
 func main() {
