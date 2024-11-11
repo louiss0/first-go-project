@@ -9,6 +9,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/samber/lo"
@@ -385,6 +386,21 @@ func walk(x interface{}, fn func(input string)) {
 
 	}
 
+}
+
+type Counter struct {
+	mutex sync.Mutex
+	value int
+}
+
+func (c *Counter) Inc() {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.value++
+}
+
+func (c *Counter) Value() int {
+	return c.value
 }
 
 func main() {
