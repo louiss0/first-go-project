@@ -422,54 +422,91 @@ func Server(store Store) http.HandlerFunc {
 type Store interface {
 	Fetch(ctx context.Context) (string, error)
 }
+type RomanNumeral struct {
+	Value  int
+	Symbol string
+}
+
+var allRomanNumerals = []RomanNumeral{
+	{1000, "M"},
+	{900, "CM"},
+	{500, "D"},
+	{400, "CD"},
+	{100, "C"},
+	{90, "XC"},
+	{50, "L"},
+	{40, "XL"},
+	{10, "X"},
+	{9, "IX"},
+	{5, "V"},
+	{4, "IV"},
+	{1, "I"},
+}
 
 func ConvertToRoman(arabic int) string {
 
-	type RomanNumeral struct {
-		Value  int
-		Symbol string
-	}
-
-	var allRomanNumerals = []RomanNumeral{
-		{1000, "M"},
-		{900, "CM"},
-		{500, "D"},
-		{400, "CD"},
-		{100, "C"},
-		{90, "XC"},
-		{50, "L"},
-		{40, "XL"},
-		{10, "X"},
-		{9, "IX"},
-		{5, "V"},
-		{4, "IV"},
-		{1, "I"},
-	}
 	var result strings.Builder
 
-	lo.Reduce(allRomanNumerals, func(acc int, numeral RomanNumeral, _ int) int {
+	lo.Reduce(
+		allRomanNumerals,
+		func(acc int, numeral RomanNumeral, _ int) int {
 
-		itemCount := acc
+			itemCount := acc
 
-		lo.ForEachWhile(
-			lo.Range(itemCount),
-			func(_ int, _ int) (goon bool) {
+			lo.ForEachWhile(
+				lo.Range(itemCount),
+				func(_ int, _ int) (goon bool) {
 
-				if itemCount < numeral.Value {
-					return false
-				}
+					if itemCount < numeral.Value {
+						return false
+					}
 
-				result.WriteString(numeral.Symbol)
-				itemCount -= numeral.Value
-				return true
+					result.WriteString(numeral.Symbol)
 
-			})
+					itemCount -= numeral.Value
 
-		return itemCount
+					return true
 
-	}, arabic)
+				})
+
+			return itemCount
+
+		}, arabic)
 
 	return result.String()
+}
+
+// later..
+func ConvertToArabic(roman string) int {
+
+	type State struct {
+		arabic int
+		roman  string
+	}
+
+	state := lo.Reduce(
+		allRomanNumerals,
+		func(state State, numeral RomanNumeral, index int) State {
+
+			arabic := state.arabic
+			roman := state.roman
+
+			for strings.HasPrefix(roman, numeral.Symbol) {
+				arabic += numeral.Value
+				roman = strings.TrimPrefix(roman, numeral.Symbol)
+			}
+
+			return State{arabic, roman}
+
+		},
+		State{
+			arabic: 0,
+			roman:  roman,
+		},
+	)
+
+	return state.arabic
+
 }
 
 func main() {
