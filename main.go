@@ -53,15 +53,13 @@ func Repeat(word string, times int) string {
 
 func Sum(numbers []int) int {
 
-	sum := 0
+	return lo.Reduce(
+		numbers,
+		func(total int, number int, _ int) int {
 
-	for _, number := range numbers {
-
-		sum += number
-
-	}
-
-	return sum
+			return total + number
+		},
+		0)
 
 }
 
@@ -487,7 +485,6 @@ func ConvertToArabic(roman string) int {
 	state := lo.Reduce(
 		allRomanNumerals,
 		func(state State, numeral RomanNumeral, index int) State {
-
 			arabic := state.arabic
 			roman := state.roman
 
