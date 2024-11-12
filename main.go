@@ -423,6 +423,55 @@ type Store interface {
 	Fetch(ctx context.Context) (string, error)
 }
 
+func ConvertToRoman(arabic int) string {
+
+	type RomanNumeral struct {
+		Value  int
+		Symbol string
+	}
+
+	var allRomanNumerals = []RomanNumeral{
+		{1000, "M"},
+		{900, "CM"},
+		{500, "D"},
+		{400, "CD"},
+		{100, "C"},
+		{90, "XC"},
+		{50, "L"},
+		{40, "XL"},
+		{10, "X"},
+		{9, "IX"},
+		{5, "V"},
+		{4, "IV"},
+		{1, "I"},
+	}
+	var result strings.Builder
+
+	lo.Reduce(allRomanNumerals, func(acc int, numeral RomanNumeral, _ int) int {
+
+		itemCount := acc
+
+		lo.ForEachWhile(
+			lo.Range(itemCount),
+			func(_ int, _ int) (goon bool) {
+
+				if itemCount < numeral.Value {
+					return false
+				}
+
+				result.WriteString(numeral.Symbol)
+				itemCount -= numeral.Value
+				return true
+
+			})
+
+		return itemCount
+
+	}, arabic)
+
+	return result.String()
+}
+
 func main() {
 	sleeper := &ConfigurableSleeper{1 * time.Second, time.Sleep}
 	Countdown(os.Stdout, sleeper)
